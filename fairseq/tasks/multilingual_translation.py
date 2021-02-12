@@ -12,6 +12,7 @@ import torch
 from fairseq import metrics, options, utils
 from fairseq.data import (
     Dictionary,
+    DictionaryForBert,
     LanguagePairDataset,
     RoundRobinZipDatasets,
     TransformEosLangPairDataset,
@@ -89,6 +90,8 @@ class MultilingualTranslationTask(LegacyFairseqTask):
                                  'language token. (src/tgt)')
         parser.add_argument('--decoder-langtok', action='store_true',
                             help='replace beginning-of-sentence in target sentence with target language token')
+        parser.add_argument('--use-bert-dict', action='store_true', default=True,
+                            help='Use custom dictionary for BERT')
         # fmt: on
 
     def __init__(self, args, dicts, training):
@@ -144,9 +147,17 @@ class MultilingualTranslationTask(LegacyFairseqTask):
         for lang in sorted_langs:
             paths = utils.split_paths(args.data)
             assert len(paths) > 0
-            dicts[lang] = cls.load_dictionary(
-                os.path.join(paths[0], "dict.{}.txt".format(lang))
-            )
+
+            if args.use_bert_dict:
+                logger.info("Use DirctionaryForBert for {}".format(lang))
+                dicts[lang] = DictionaryForBert.load(
+                    os.path.join(paths[0], "dict.{}.txt".format(lang))
+                )
+            else:
+                logger.info("Use default Dirctionary for {}".format(lang))
+                dicts[lang] = Dictionary.load(
+                    os.path.join(paths[0], "dict.{}.txt".format(lang))
+                )
             if len(dicts) > 0:
                 assert dicts[lang].pad() == dicts[sorted_langs[0]].pad()
                 assert dicts[lang].eos() == dicts[sorted_langs[0]].eos()

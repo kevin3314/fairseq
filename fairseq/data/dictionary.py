@@ -374,6 +374,87 @@ class Dictionary:
             )
 
 
+class DictionaryForBert(Dictionary):
+    """A mapping from symbols to consecutive integers.
+    Change add_symbol order for BERT.
+    Special tokens in (NICT) BERT is:
+    [PAD] : 0
+    [UNK] : 1
+    [CLS] : 2
+    [SEP] : 3
+    [MASK]: 4"""
+    def __init__(
+        self,
+        *,  # begin keyword-only arguments
+        bos="[CLS]",
+        pad="[PAD]",
+        eos="[SEP]",
+        unk="[UNK]",
+        mask="[MASK]",
+        extra_special_symbols=None,
+    ):
+        self.bos_word, self.unk_word, self.pad_word, self.eos_word = bos, unk, pad, eos
+        self.symbols = []
+        self.count = []
+        self.indices = {}
+        self.pad_index = self.add_symbol(pad)
+        self.unk_index = self.add_symbol(unk)
+        self.bos_index = self.add_symbol(bos)
+        self.eos_index = self.add_symbol(eos)
+        self.special_symbols = {bos, unk, pad, eos, mask}
+        self.add_symbol(mask)
+        if extra_special_symbols:
+            for s in extra_special_symbols:
+                self.add_symbol(s)
+        self.nspecial = len(self.symbols)
+
+    def add_from_file(self, f):
+        """
+        Loads a pre-existing dictionary from a text file and adds its symbols
+        to this instance.
+        """
+        if isinstance(f, str):
+            try:
+                with open(PathManager.get_local_path(f), "r", encoding="utf-8") as fd:
+                    self.add_from_file(fd)
+            except FileNotFoundError as fnfe:
+                raise fnfe
+            except UnicodeError:
+                raise Exception(
+                    "Incorrect encoding detected in {}, please "
+                    "rebuild the dataset".format(f)
+                )
+            return
+
+        lines = f.readlines()
+        indices_start_line = self._load_meta(lines)
+
+        for line in lines[indices_start_line:]:
+            try:
+                line, field = line.rstrip().rsplit(" ", 1)
+                if field == "#fairseq:overwrite":
+                    overwrite = True
+                    line, field = line.rsplit(" ", 1)
+                else:
+                    overwrite = False
+                count = int(field)
+                word = line
+                # If Duplicate word is special symbol, then not raise error and skip it.
+                if word in self and not overwrite and word not in self.special_symbols:
+                    raise RuntimeError(
+                        "Duplicate word found when loading Dictionary: '{}'. "
+                        "Duplicate words can overwrite earlier ones by adding the "
+                        "#fairseq:overwrite flag at the end of the corresponding row "
+                        "in the dictionary file. If using the Camembert model, please "
+                        "download an updated copy of the model file.".format(word)
+                    )
+                self.add_symbol(word, n=count, overwrite=overwrite)
+            except ValueError:
+                raise ValueError(
+                    "Incorrect dictionary format, expected '<token> <cnt> [flags]'"
+                )
+
+
 class TruncatedDictionary(object):
     def __init__(self, wrapped_dict, length):
         self.__class__ = type(
