@@ -28,6 +28,8 @@ class Dictionary:
         extra_special_symbols=None,
     ):
         self.bos_word, self.unk_word, self.pad_word, self.eos_word = bos, unk, pad, eos
+        # Special symbols
+        self.special_symbols = [bos, unk, pad, eos, "<mask>"]
         self.symbols = []
         self.count = []
         self.indices = {}
@@ -136,6 +138,27 @@ class Dictionary:
                 self.indices[word] = idx
                 self.symbols.append(word)
                 self.count.append(new_dict.count[idx2])
+
+    def reorder_special_tokens(self):
+        """Sort only special symbols by frequency in descending order.
+        Please call after all special symbols are added."""
+        old_indices = dict(self.indices)
+        special_symbols_len = len(self.special_symbols)
+
+        c = Counter(
+            dict(
+                sorted(zip(
+                    self.symbols[:special_symbols_len],
+                    self.count[:special_symbols_len]
+                ))
+            )
+        )
+        for i, (symbol, count) in enumerate(c.most_common()):
+            self.indices[symbol] = old_indices[symbol]
+            self.symbols[i] = symbol
+            self.count[i] = count
+
+        assert i+1 == len(self.special_symbols)
 
     def finalize(self, threshold=-1, nwords=-1, padding_factor=8):
         """Sort symbols by frequency in descending order, ignoring special ones.
@@ -246,7 +269,9 @@ class Dictionary:
                     overwrite = False
                 count = int(field)
                 word = line
-                if word in self and not overwrite:
+                # If word in self.special_symbols, not raise error so that
+                # count for special token is added.
+                if word in self and not overwrite and not word in self.special_symbols:
                     raise RuntimeError(
                         "Duplicate word found when loading Dictionary: '{}'. "
                         "Duplicate words can overwrite earlier ones by adding the "
