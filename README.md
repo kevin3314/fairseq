@@ -11,7 +11,8 @@
 --------------------------------------------------------------------------------
 
 # Diff
-- Implement custom directory for (NICT-)BERT.
+- Implement custom dictionary for (NICT-)BERT.
+- Please align index for special symbols in dictionary for encoder and decoder.
 
 ***
 
