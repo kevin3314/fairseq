@@ -11,12 +11,14 @@ import os
 from typing import Optional
 from argparse import Namespace
 from omegaconf import II
+from typing import Set
 
 import numpy as np
 from fairseq import metrics, utils
 from fairseq.data import (
     AppendTokenDataset,
     ConcatDataset,
+    DictionaryForBert,
     LanguagePairDataset,
     PrependTokenDataset,
     StripTokenDataset,
@@ -59,7 +61,9 @@ def load_langpair_dataset(
     pad_to_multiple=1,
 ):
     def split_exists(split, src, tgt, lang, data_path):
+        logger.info(f"Dataset_impl -> {dataset_impl}")
         filename = os.path.join(data_path, "{}.{}-{}.{}".format(split, src, tgt, lang))
+        logger.info(f"Dataset filename -> {filename}")
         return indexed_dataset.dataset_exists(filename, impl=dataset_impl)
 
     src_datasets = []
@@ -224,6 +228,13 @@ class TranslationConfig(FairseqDataclass):
     )
     required_seq_len_multiple: int = II("dataset.required_seq_len_multiple")
 
+    use_bert_dict: str = field(
+        default="ja,en",
+        metadata={
+            "help": "Specify which dictonary use custome one"
+        },
+    )
+
     # options for reporting BLEU during validation
     eval_bleu: bool = field(
         default=False, metadata={"help": "evaluation with BLEU scores"}
@@ -301,12 +312,31 @@ class TranslationTask(FairseqTask):
             )
 
         # load dictionaries
-        src_dict = cls.load_dictionary(
-            os.path.join(paths[0], "dict.{}.txt".format(cfg.source_lang))
-        )
-        tgt_dict = cls.load_dictionary(
-            os.path.join(paths[0], "dict.{}.txt".format(cfg.target_lang))
-        )
+        bert_dict_langs: Set = set(cfg.use_bert_dict.split(","))
+        source_lang = cfg.source_lang
+        if cfg.source_lang in bert_dict_langs:
+            logger.info("Use DirctionaryForBert for {}".format(source_lang))
+            src_dict = DictionaryForBert.load(
+                os.path.join(paths[0], "dict.{}.txt".format(source_lang))
+            )
+        else:
+            logger.info("Use default Dirctionary for {}".format(source_lang))
+            src_dict = cls.load_dictionary(
+                os.path.join(paths[0], "dict.{}.txt".format(source_lang))
+            )
+
+        target_lang = cfg.target_lang
+        if cfg.target_lang in bert_dict_langs:
+            logger.info("Use DirctionaryForBert for {}".format(target_lang))
+            tgt_dict = DictionaryForBert.load(
+                os.path.join(paths[0], "dict.{}.txt".format(target_lang))
+            )
+        else:
+            logger.info("Use default Dirctionary for {}".format(target_lang))
+            tgt_dict = cls.load_dictionary(
+                os.path.join(paths[0], "dict.{}.txt".format(target_lang))
+            )
+
         assert src_dict.pad() == tgt_dict.pad()
         assert src_dict.eos() == tgt_dict.eos()
         assert src_dict.unk() == tgt_dict.unk()

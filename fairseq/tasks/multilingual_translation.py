@@ -7,6 +7,7 @@ import contextlib
 import logging
 import os
 from collections import OrderedDict
+from typing import Set
 
 import torch
 from fairseq import metrics, options, utils
@@ -90,7 +91,7 @@ class MultilingualTranslationTask(LegacyFairseqTask):
                                  'language token. (src/tgt)')
         parser.add_argument('--decoder-langtok', action='store_true',
                             help='replace beginning-of-sentence in target sentence with target language token')
-        parser.add_argument('--use-bert-dict', action='store_true', default=True,
+        parser.add_argument('--use-bert-dict', default='ja-en', metavar='str',
                             help='Use custom dictionary for BERT')
         # fmt: on
 
@@ -144,11 +145,12 @@ class MultilingualTranslationTask(LegacyFairseqTask):
 
         # load dictionaries
         dicts = OrderedDict()
+        bert_dict_langs: Set = set(args.use_bert_dict.split("-"))
         for lang in sorted_langs:
             paths = utils.split_paths(args.data)
             assert len(paths) > 0
 
-            if args.use_bert_dict:
+            if lang in bert_dict_langs:
                 logger.info("Use DirctionaryForBert for {}".format(lang))
                 dicts[lang] = DictionaryForBert.load(
                     os.path.join(paths[0], "dict.{}.txt".format(lang))
