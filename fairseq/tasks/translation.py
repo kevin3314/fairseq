@@ -59,6 +59,7 @@ def load_langpair_dataset(
     num_buckets=0,
     shuffle=True,
     pad_to_multiple=1,
+    add_token_type_ids=False,
 ):
     def split_exists(split, src, tgt, lang, data_path):
         logger.info(f"Dataset_impl -> {dataset_impl}")
@@ -167,6 +168,7 @@ def load_langpair_dataset(
         num_buckets=num_buckets,
         shuffle=shuffle,
         pad_to_multiple=pad_to_multiple,
+        add_token_type_ids=add_token_type_ids,
     )
 
 
@@ -229,7 +231,7 @@ class TranslationConfig(FairseqDataclass):
     required_seq_len_multiple: int = II("dataset.required_seq_len_multiple")
 
     use_bert_dict: str = field(
-        default="ja,en",
+        default="",
         metadata={
             "help": "Specify which dictonary use custome one"
         },
@@ -268,6 +270,9 @@ class TranslationConfig(FairseqDataclass):
     )
     eval_bleu_print_samples: bool = field(
         default=False, metadata={"help": "print sample generations during validation"}
+    )
+    dataset_add_token_type_ids: bool = field(
+        default=False, metadata={"help": "if set, append token_type_ids (all zeros)"}
     )
 
 
@@ -380,6 +385,7 @@ class TranslationTask(FairseqTask):
             num_buckets=self.cfg.num_batch_buckets,
             shuffle=(split != "test"),
             pad_to_multiple=self.cfg.required_seq_len_multiple,
+            add_token_type_ids=self.cfg.dataset_add_token_type_ids,
         )
 
     def build_dataset_for_inference(self, src_tokens, src_lengths, constraints=None):
@@ -389,6 +395,7 @@ class TranslationTask(FairseqTask):
             self.source_dictionary,
             tgt_dict=self.target_dictionary,
             constraints=constraints,
+            add_token_type_ids=self.cfg.dataset_add_token_type_ids,
         )
 
     def build_model(self, cfg):

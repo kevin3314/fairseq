@@ -77,6 +77,7 @@ def collate(
     src_lengths, sort_order = src_lengths.sort(descending=True)
     id = id.index_select(0, sort_order)
     src_tokens = src_tokens.index_select(0, sort_order)
+    token_type_ids = torch.zeros(src_tokens.shape, dtype=torch.long)
 
     prev_output_tokens = None
     target = None
@@ -117,6 +118,7 @@ def collate(
         "net_input": {
             "src_tokens": src_tokens,
             "src_lengths": src_lengths,
+            "token_type_ids": token_type_ids,
         },
         "target": target,
     }
@@ -202,6 +204,7 @@ class LanguagePairDataset(FairseqDataset):
         tgt_lang_id (int, optional): target language ID, if set, the collated batch
             will contain a field 'tgt_lang_id' which indicates the target language
              of the samples.
+        add_token_type_ids (bool, optional): if set, append token_type_ids (all zero)
     """
 
     def __init__(
@@ -226,6 +229,7 @@ class LanguagePairDataset(FairseqDataset):
         src_lang_id=None,
         tgt_lang_id=None,
         pad_to_multiple=1,
+        add_token_type_ids=False,
     ):
         if tgt_dict is not None:
             assert src_dict.pad() == tgt_dict.pad()
@@ -262,6 +266,7 @@ class LanguagePairDataset(FairseqDataset):
         self.eos = eos if eos is not None else src_dict.eos()
         self.src_lang_id = src_lang_id
         self.tgt_lang_id = tgt_lang_id
+        self.add_token_type_ids = add_token_type_ids
         if num_buckets > 0:
             from fairseq.data import BucketPadLengthDataset
 
