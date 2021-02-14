@@ -5,12 +5,14 @@
 
 import argparse
 import contextlib
+from collections import namedtuple
 import copy
 import importlib
 import logging
 import os
 import sys
 import tempfile
+from typing import Dict
 import warnings
 from itertools import accumulate
 from typing import Callable, Dict, List, Optional
@@ -706,6 +708,67 @@ class CudaEnvironment(object):
                 + "name = {:40s}".format(env.name)
             )
         logger.info(first_line)
+
+
+def overwrite_by_bert_weight(
+    bert_weight_path: str,
+    transformer_weight: Dict
+) -> None:
+    """Overwrite weight by bert one.add()
+
+    Args:
+        bert_weight_path (str): Path to bert weight to load
+        transformer_weight (Dict): transformer weight to update
+    """
+    bert_weight = torch.load(bert_weight_path)
+    rename_bert_weight(bert_weight)
+
+    # Assert keys
+    bert_keys = set(bert_weight.keys())
+    transformer_keys = set(transformer_weight["model"].keys())
+    diff = transformer_keys - bert_keys
+    assert list(x for x in diff if not "decoder" in x) == ["encoder.version"]
+
+    # Overwrite weights
+    for key, value in bert_weight
+        transformer_weight["model"][key] = value
+
+
+def rename_bert_weight(bert_weight: Dict[str, torch.Tensor]) -> None:
+    """Rename bert weight's key such that it fits fairseq's weight
+
+    Args:
+        bert_weight (Dict[str, torch.Tensor]): bert weight to rename
+    """
+    Translations = namedtuple("Translations", ["bert_name", "transformer_name"])
+    bert2fairseq_list = [
+        Translations("embeddings.word_embeddings", "embed_tokens"),
+        Translations("embeddings.position_embeddings", "embed_positions"),
+        Translations("embeddings.token_type_embeddings", "token_type_embeddings"),
+        Translations("embeddings.LayerNorm", "layernorm_embedding"),
+        Translations("bert.encoder", "encoder"),
+        Translations("bert", "encoder"),
+        Translations("attention.self.query", "self_attn.q_proj"),
+        Translations("attention.self.key", "self_attn.k_proj"),
+        Translations("attention.self.value", "self_attn.v_proj"),
+        Translations("attention.output.dense", "self_attn.out_proj"),
+        Translations("attention.output.LayerNorm", "self_attn_layer_norm"),
+        Translations("intermediate.dense", "fc1"),
+        Translations("output.dense", "fc2"),
+        Translations("output.LayerNorm", "final_layer_norm"),
+        Translations(".layer.", ".layers."),
+    ]
+    bert2fairseq_list.sort(key=lambda x: -len(x.bert_name))
+    mapping_list = []
+    orig_bert_keys = list(bert_weight.keys())
+    for key in orig_bert_keys:
+        orig = key
+        result = key
+        for (source, target) in bert2fairseq_list:
+            result = result.replace(source, target)
+        mapping_list.append((orig, result))
+    for (orig, result) in mapping_list:
+        bert_weight[result] = bert_weight.pop(orig)
 
 
 def csv_str_list(x):
