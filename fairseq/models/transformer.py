@@ -190,6 +190,11 @@ class TransformerModel(FairseqEncoderDecoderModel):
                             help='block size of quantization noise at training time')
         parser.add_argument('--quant-noise-scalar', type=float, metavar='D', default=0,
                             help='scalar quantization noise and scalar quantization at training time')
+        # args for token_type_embeddings
+        parser.add_argument('--add-token-type-embeddings', action='store_true',
+                            help='add token type embeddings or not. if you use bert, please choice this option.')
+        parser.add_argument('--type-vocab-size', type=int, metavar='N',
+                            help='vocabulary size for type tokens')
         # fmt: on
 
     @classmethod
@@ -198,6 +203,16 @@ class TransformerModel(FairseqEncoderDecoderModel):
 
         # make sure all arguments are present in older models
         base_architecture(args)
+
+        # Validate args about token type embeddings
+        if args.add_token_type_embeddings and not args.type_vocab_size:
+            raise ValueError(
+                "--add-token-type-embeddings requires --type-vocab-size"
+            )
+        if not args.add_token_type_embeddings and args.type_vocab_size:
+            raise ValueError(
+                "--type-vocab-size requires --add-token-type-embeddings"
+            )
 
         if args.encoder_layers_to_keep:
             args.encoder_layers = len(args.encoder_layers_to_keep.split(","))
@@ -352,6 +367,12 @@ class TransformerEncoder(FairseqEncoder):
             else None
         )
 
+        self.token_type_embeddings = (
+            nn.Embedding(args.type_vocab_size, embed_dim)
+            if args.add_token_type_embeddings
+            else None
+        )
+
         if getattr(args, "layernorm_embedding", False):
             self.layernorm_embedding = LayerNorm(embed_dim)
         else:
@@ -388,12 +409,17 @@ class TransformerEncoder(FairseqEncoder):
         return layer
 
     def forward_embedding(
-        self, src_tokens, token_embedding: Optional[torch.Tensor] = None
+        self,
+        src_tokens,
+        token_embedding: Optional[torch.Tensor] = None,
+        token_type_ids: Optional[torch.Tensor] = None,
     ):
         # embed tokens and positions
         if token_embedding is None:
             token_embedding = self.embed_tokens(src_tokens)
         x = embed = self.embed_scale * token_embedding
+        if self.token_type_embeddings:
+            x = embed + self.token_type_embeddings(token_type_ids)
         if self.embed_positions is not None:
             x = embed + self.embed_positions(src_tokens)
         if self.layernorm_embedding is not None:
@@ -409,6 +435,7 @@ class TransformerEncoder(FairseqEncoder):
         src_lengths: Optional[torch.Tensor] = None,
         return_all_hiddens: bool = False,
         token_embeddings: Optional[torch.Tensor] = None,
+        token_type_ids: Optional[torch.Tensor] = None,
     ):
         """
         Args:
@@ -420,6 +447,8 @@ class TransformerEncoder(FairseqEncoder):
                 intermediate hidden states (default: False).
             token_embeddings (torch.Tensor, optional): precomputed embeddings
                 default `None` will recompute embeddings
+            token_type_ids (torch.Tensor, optional): token type ids. For
+                compatibility to BERT.
 
         Returns:
             dict:
@@ -433,7 +462,9 @@ class TransformerEncoder(FairseqEncoder):
                   hidden states of shape `(src_len, batch, embed_dim)`.
                   Only populated if *return_all_hiddens* is True.
         """
-        x, encoder_embedding = self.forward_embedding(src_tokens, token_embeddings)
+        x, encoder_embedding = self.forward_embedding(
+            src_tokens, token_embeddings, token_type_ids
+        )
 
         # B x T x C -> T x B x C
         x = x.transpose(0, 1)
