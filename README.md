@@ -13,10 +13,12 @@
 # Diff
 - Implement custom dictionary for (NICT-)BERT.
   - Please align index for special symbols in dictionary for encoder and decoder.
+  - `use-bert-dict` -> If use, specify like `ja,en` (free order)
 - Set default value of `share_all_embeddings` in `bart` to False
   - Not share embeddings between encoder and decoder
 - Add option for token type embeddings
-  - `add-token-type-embeddings` -> Wether add token type ids or not
+  - `add-token-type-embeddings` -> Wether add token type ids or not (model)
+  - `dataset-add-token-type-ids` -> Wether add token type ids or not (dataset)
   - `type-vocab-size` -> Vocabulary size of type tokens
 
 ***
