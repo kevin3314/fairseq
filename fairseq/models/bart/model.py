@@ -82,6 +82,7 @@ class BARTModel(TransformerModel):
         return_all_hiddens: bool = True,
         alignment_layer: Optional[int] = None,
         alignment_heads: Optional[int] = None,
+        token_type_ids: Optional[torch.Tensor] = None,
     ):
         if classification_head_name is not None:
             features_only = True
@@ -90,7 +91,8 @@ class BARTModel(TransformerModel):
             src_tokens,
             src_lengths=src_lengths,
             token_embeddings=token_embeddings,
-            return_all_hiddens=return_all_hiddens
+            return_all_hiddens=return_all_hiddens,
+            token_type_ids=token_type_ids,
         )
         x, extra = self.decoder(
             prev_output_tokens,
