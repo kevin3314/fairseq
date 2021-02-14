@@ -15,6 +15,9 @@
   - Please align index for special symbols in dictionary for encoder and decoder.
 - Set default value of `share_all_embeddings` in `bart` to False
   - Not share embeddings between encoder and decoder
+- Add option for token type embeddings
+  - `add-token-type-embeddings` -> Wether add token type ids or not
+  - `type-vocab-size` -> Vocabulary size of type tokens
 
 ***
 
