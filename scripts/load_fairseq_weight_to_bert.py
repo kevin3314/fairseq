@@ -35,6 +35,14 @@ def main(args: argparse.Namespace):
 
     torch.save(bert_weight, result_path)
 
+    # Write source information
+    source_info = "\n".join([
+        "bert_weight_path: " + bert_weight_path,
+        "transformer_weight_path: " + transformer_weight_path
+    ])
+    with open(result_path.parent / "source_info.txt", "w") as f:
+        f.write(source_info)
+
 
 def rename_transformer_weight(transformer_weight: Dict[str, torch.Tensor]) -> None:
     """Rename bert weight's key such that it fits fairseq's weight
