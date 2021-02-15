@@ -20,6 +20,10 @@
   - `add-token-type-embeddings` -> Wether add token type ids or not (model)
   - `dataset-add-token-type-ids` -> Wether add token type ids or not (dataset)
   - `type-vocab-size` -> Vocabulary size of type tokens
+- Add option for loading bert weight
+  - `load_bert_path` -> Path for bert weight to load
+- Add option for length of positional embeddings
+  - `max-source-positions`, `max-target-positions`
 
 ***
 
