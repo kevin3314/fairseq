@@ -25,6 +25,7 @@
 - Add option for length of positional embeddings
   - `max-source-positions`, `max-target-positions`
 - Add script for revert encoder's weight in transformer to bert
+  - `scripts/load_fairseq_weight_to_bert.py`
 
 ***
 
