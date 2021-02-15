@@ -725,13 +725,19 @@ def overwrite_by_bert_weight(
 
     # Assert keys
     bert_keys = set(bert_weight.keys())
-    transformer_keys = set(transformer_weight["model"].keys())
+    transformer_keys = set(transformer_weight.keys())
     diff = transformer_keys - bert_keys
-    assert list(x for x in diff if not "decoder" in x) == ["encoder.version"]
+    assert list(x for x in diff if "decoder" not in x) == ["encoder.version"]
 
+    remain_bert_keys = bert_keys - transformer_keys
+    if remain_bert_keys:
+        logger.info("Several weight of bert was not used")
+        logger.info(remain_bert_keys)
+
+    update_dict = {key: value for key, value in bert_weight.items() if key in transformer_keys}
     # Overwrite weights
-    for key, value in bert_weight
-        transformer_weight["model"][key] = value
+    for key, value in update_dict.items():
+        transformer_weight[key] = value
 
 
 def rename_bert_weight(bert_weight: Dict[str, torch.Tensor]) -> None:
