@@ -282,6 +282,10 @@ class TranslationConfig(FairseqDataclass):
         default=False, metadata={"help": "if set, append token_type_ids (all zeros)"}
     )
 
+    freeze_encoder: bool = field(
+        default=False, metadata={"help": "if set, freeze encoder's weight"}
+    )
+
 
 @register_task("translation", dataclass=TranslationConfig)
 class TranslationTask(FairseqTask):
@@ -424,6 +428,16 @@ class TranslationTask(FairseqTask):
             orig_state_dict = model.state_dict()
             overwrite_by_bert_weight(cfg.load_bert_path, orig_state_dict)
             model.load_state_dict(orig_state_dict)
+
+        # Freeze encoder's weight
+        frozen_param_names = []
+        if cfg.freeze_encoder:
+            for name, param in model.named_parameters():
+                if "encoder." in name:
+                    param.requires_grad = False
+                    frozen_param_names.append(name)
+            logger.info("Freeze following parameters:")
+            logger.info(frozen_param_names)
         return model
 
     def valid_step(self, sample, model, criterion):
