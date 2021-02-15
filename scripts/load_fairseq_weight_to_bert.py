@@ -21,7 +21,7 @@ def main(args: argparse.Namespace):
     transformer_keys = set(transformer_weight.keys())
     enc_transformer_keys = {x for x in transformer_keys if "decoder" not in x}
     diff = enc_transformer_keys - bert_keys
-    assert diff == {"encoder.version"}
+    assert diff == {"bert.encoder.version"}, f"diff = {diff}"
 
     update_dict = {key: value for key, value in transformer_weight.items() if key in bert_keys}
 
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Load encoder's weight from transformer")
     parser.add_argument('bert_weight_path', metavar='BERT_WEIGHT_PATH', help="Path to bert weight")
     parser.add_argument('transformer_weight_path', metavar='TRANSFORMER_WEIGHT_PATH', help="Path to transformer weight")
-    parser.add_argument('result_path', metavar='BERT_WEIGHT_PATH', help="Path to write result weight")
+    parser.add_argument('result_path', metavar='BERT_WEIGHT_PATH', help="Path to write result weight. e.g. /path/to/hoge/pytorch_model.bin")
     args = parser.parse_args()
 
     main(args)

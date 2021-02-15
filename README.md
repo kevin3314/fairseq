@@ -24,6 +24,7 @@
   - `load_bert_path` -> Path for bert weight to load
 - Add option for length of positional embeddings
   - `max-source-positions`, `max-target-positions`
+- Add script for revert encoder's weight in transformer to bert
 
 ***
 
