@@ -30,6 +30,7 @@ from fairseq.data import (
 from fairseq.data.indexed_dataset import get_available_dataset_impl
 from fairseq.dataclass import ChoiceEnum, FairseqDataclass
 from fairseq.tasks import FairseqTask, register_task
+from fairseq.utils import overwrite_by_bert_weight
 
 
 EVAL_BLEU_ORDER = 4
@@ -236,6 +237,12 @@ class TranslationConfig(FairseqDataclass):
             "help": "Specify which dictonary use custome one"
         },
     )
+    load_bert_path: str = field(
+        default="",
+        metadata={
+            "help": "If set, load bert weight in path to encoder. Please add --add-token-type-embeddings and --type-vocab-size."
+        },
+    )
 
     # options for reporting BLEU during validation
     eval_bleu: bool = field(
@@ -410,6 +417,13 @@ class TranslationTask(FairseqTask):
             self.sequence_generator = self.build_generator(
                 [model], Namespace(**gen_args)
             )
+
+        # Overwrite weight
+        if cfg.load_bert_path:
+            logger.info(f"Loading bert weight in {cfg.load_bert_path}")
+            orig_state_dict = model.state_dict()
+            overwrite_by_bert_weight(cfg.load_bert_path, orig_state_dict)
+            model.load_state_dict(orig_state_dict)
         return model
 
     def valid_step(self, sample, model, criterion):

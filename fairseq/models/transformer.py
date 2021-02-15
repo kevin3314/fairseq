@@ -195,6 +195,10 @@ class TransformerModel(FairseqEncoderDecoderModel):
                             help='add token type embeddings or not. if you use bert, please choice this option.')
         parser.add_argument('--type-vocab-size', type=int, metavar='N',
                             help='vocabulary size for type tokens')
+        parser.add_argument('--max-source-positions', type=int, metavar='N',
+                            help='max source positions')
+        parser.add_argument('--max-target-positions', type=int, metavar='N',
+                            help='max target positions')
         # fmt: on
 
     @classmethod
@@ -372,7 +376,7 @@ class TransformerEncoder(FairseqEncoder):
         )
 
         self.token_type_embeddings = (
-            nn.Embedding(args.type_vocab_size, embed_dim)
+            Embedding(args.type_vocab_size, embed_dim, None)
             if args.add_token_type_embeddings
             else None
         )
