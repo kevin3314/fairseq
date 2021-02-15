@@ -26,6 +26,8 @@
   - `max-source-positions`, `max-target-positions`
 - Add script for revert encoder's weight in transformer to bert
   - `scripts/load_fairseq_weight_to_bert.py`
+- Add option for freezing encoder
+  - `freeze-encoder`: If set, freeze encoder's weight
 
 ***
 
