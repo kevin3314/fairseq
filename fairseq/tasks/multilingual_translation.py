@@ -91,7 +91,7 @@ class MultilingualTranslationTask(LegacyFairseqTask):
                                  'language token. (src/tgt)')
         parser.add_argument('--decoder-langtok', action='store_true',
                             help='replace beginning-of-sentence in target sentence with target language token')
-        parser.add_argument('--use-bert-dict', default='ja-en', metavar='str',
+        parser.add_argument('--use-bert-dict', default='ja,en', metavar='str',
                             help='Use custom dictionary for BERT')
         # fmt: on
 
@@ -145,7 +145,7 @@ class MultilingualTranslationTask(LegacyFairseqTask):
 
         # load dictionaries
         dicts = OrderedDict()
-        bert_dict_langs: Set = set(args.use_bert_dict.split("-"))
+        bert_dict_langs: Set = set(args.use_bert_dict.split(","))
         for lang in sorted_langs:
             paths = utils.split_paths(args.data)
             assert len(paths) > 0
